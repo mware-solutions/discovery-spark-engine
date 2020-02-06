@@ -76,7 +76,7 @@
     <orc-core.version>1.4.4</orc-core.version>
 
     <!-- used in dataprep -->
-    <hadoop.version>2.7.2</hadoop.version>
+    <hadoop.version>2.7.3</hadoop.version>
 
     <!-- Metatron Build Version -->
     <metatron.app.version>${project.version}</metatron.app.version>

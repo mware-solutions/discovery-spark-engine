@@ -18,6 +18,7 @@ import app.metatron.discovery.prep.spark.udf.ArrayToJsonEx;
 import app.metatron.discovery.prep.spark.udf.CountPatternEx;
 import app.metatron.discovery.prep.spark.udf.RegexpExtractEx;
 import app.metatron.discovery.prep.spark.udf.SplitEx;
+import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
@@ -45,7 +46,12 @@ public class SparkUtil {
       LOGGER.info("spark.sql.catalogImplementation={} hive.metastore.uris={}", "hive", metastoreUris);
       LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
 
+      SparkConf conf = new SparkConf();
+      conf.set("spark.executor.memory", "16g");
+      conf.set("spark.driver.memory", "4g");
+
       Builder builder = SparkSession.builder()
+              .config(conf)
               .appName(appName)
               .master(masterUri);
 
@@ -60,6 +66,7 @@ public class SparkUtil {
                 .config("spark.sql.catalogImplementation", "in-memory")
                 .config("spark.driver.maxResultSize", "8g");
       }
+
       session = builder.getOrCreate();
 
       session.udf().register("split_ex", split_ex, DataTypes.StringType);
