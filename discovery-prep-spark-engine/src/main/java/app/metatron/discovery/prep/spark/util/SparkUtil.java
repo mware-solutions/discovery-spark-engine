@@ -47,8 +47,8 @@ public class SparkUtil {
       LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
 
       SparkConf conf = new SparkConf();
-      conf.set("spark.executor.memory", "16g");
-      conf.set("spark.driver.memory", "4g");
+      conf.set("spark.executor.memory", "1g");
+      conf.set("spark.driver.memory", "1g");
 
       Builder builder = SparkSession.builder()
               .config(conf)
@@ -64,10 +64,13 @@ public class SparkUtil {
       } else {
         builder = builder
                 .config("spark.sql.catalogImplementation", "in-memory")
-                .config("spark.driver.maxResultSize", "8g");
+                .config("spark.driver.maxResultSize", "2g");
       }
 
       session = builder.getOrCreate();
+
+//      session.sparkContext().hadoopConfiguration().set("fs.alluxio.impl", "alluxio.hadoop.FileSystem");
+//      session.sparkContext().hadoopConfiguration().set("fs.default.name", "alluxio://localhost:19998/");
 
       session.udf().register("split_ex", split_ex, DataTypes.StringType);
       session.udf().register("regexp_extract_ex", regexp_extract_ex, DataTypes.StringType);
@@ -85,7 +88,7 @@ public class SparkUtil {
 
   public static void stopSession() {
     if (session != null) {
-      session.stop();
+//      session.stop();
       session = null;
     }
   }

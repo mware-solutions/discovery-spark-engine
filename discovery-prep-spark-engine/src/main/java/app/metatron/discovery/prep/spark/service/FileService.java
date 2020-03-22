@@ -80,6 +80,7 @@ public class FileService {
         }
         break;
 
+      case "alluxio":
       case "hdfs":
         Configuration conf = new Configuration();
         conf.addResource(new Path(System.getenv("HADOOP_CONF_DIR") + "/core-site.xml"));

@@ -166,7 +166,7 @@ public class DiscoveryPrepSparkEngineService {
     } catch (CancellationException e) {
       handleException(ssId, "CANCELED", e);
       throw e;
-    } catch (URISyntaxException e) {
+    } catch (Exception e) {
       handleException(ssId, "FAILED", e);
       throw e;
     }
