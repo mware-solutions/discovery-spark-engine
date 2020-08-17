@@ -65,6 +65,8 @@ public class DatabaseService {
 
     LOGGER.warn("DatabaseService.createStage0(): url={} user={} password={} dbtable={}", connectUri, username, password, dbtable);
 
+    SparkUtil.createSession(datasetInfo);
+
     return SparkUtil.getSession().read()
             .format("jdbc")
             .option("url", connectUri)

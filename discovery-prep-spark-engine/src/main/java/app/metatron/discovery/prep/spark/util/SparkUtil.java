@@ -28,6 +28,8 @@ import org.apache.spark.sql.types.DataTypes;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.Map;
+
 public class SparkUtil {
 
   private static Logger LOGGER = LoggerFactory.getLogger(SparkUtil.class);
@@ -39,44 +41,56 @@ public class SparkUtil {
   private static String metastoreUris;
   private static String warehouseDir;
 
-  public static SparkSession getSession() {
-    if (session == null) {
-      LOGGER.info("creating session:");
-      LOGGER.info("appName={} masterUri={} spark.sql.warehouse.dir={}", appName, masterUri, warehouseDir);
-      LOGGER.info("spark.sql.catalogImplementation={} hive.metastore.uris={}", "hive", metastoreUris);
-      LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
+  public static SparkSession createSession(Map<String, Object> datasetInfo) {
+    LOGGER.info("creating session:");
+    LOGGER.info("appName={} masterUri={} spark.sql.warehouse.dir={}", appName, masterUri, warehouseDir);
+    LOGGER.info("spark.sql.catalogImplementation={} hive.metastore.uris={}", "hive", metastoreUris);
+    LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
 
-      SparkConf conf = new SparkConf();
-      conf.set("spark.executor.memory", "1g");
-      conf.set("spark.driver.memory", "1g");
+    SparkConf conf = new SparkConf();
+    conf.set("spark.executor.memory", "1g");
+    conf.set("spark.driver.memory", "1g");
 
-      Builder builder = SparkSession.builder()
-              .config(conf)
-              .appName(appName)
-              .master(masterUri);
-
-      if (metastoreUris != null && warehouseDir != null && warehouseDir.startsWith("hdfs")) {
-        builder = builder
-                .config("hive.metastore.uris", metastoreUris)
-                .config("spark.sql.warehouse.dir", warehouseDir)
-                .config("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation", "true")
-                .enableHiveSupport();
-      } else {
-        builder = builder
-                .config("spark.sql.catalogImplementation", "in-memory")
-                .config("spark.driver.maxResultSize", "2g");
-      }
-
-      session = builder.getOrCreate();
-
-//      session.sparkContext().hadoopConfiguration().set("fs.alluxio.impl", "alluxio.hadoop.FileSystem");
-//      session.sparkContext().hadoopConfiguration().set("fs.default.name", "alluxio://localhost:19998/");
-
-      session.udf().register("split_ex", split_ex, DataTypes.StringType);
-      session.udf().register("regexp_extract_ex", regexp_extract_ex, DataTypes.StringType);
-      session.udf().register("count_pattern_ex", count_pattern_ex, DataTypes.IntegerType);
-      session.udf().register("array_to_json_ex", array_to_json_ex, DataTypes.StringType);
+    String storedUri = (String) datasetInfo.get("storedUri");
+    if (storedUri.startsWith("s3a://")) {
+      conf.set("spark.hadoop.fs.s3a.endpoint", (String) datasetInfo.get("fs.s3a.endpoint"));
+      conf.set("spark.hadoop.fs.s3a.access.key", (String) datasetInfo.get("fs.s3a.access.key"));
+      conf.set("spark.hadoop.fs.s3a.secret.key", (String) datasetInfo.get("fs.s3a.secret.key"));
+      conf.set("spark.hadoop.fs.s3a.fast.upload", "true");
+      conf.set("spark.hadoop.fs.s3a.path.style.access", "true");
+      conf.set("spark.hadoop.fs.s3a.path.style.access", "true");
+      conf.set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
     }
+
+    Builder builder = SparkSession.builder()
+            .config(conf)
+            .appName(appName)
+            .master(masterUri);
+
+    if (metastoreUris != null && warehouseDir != null && warehouseDir.startsWith("hdfs")) {
+      builder = builder
+              .config("hive.metastore.uris", metastoreUris)
+              .config("spark.sql.warehouse.dir", warehouseDir)
+              .config("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation", "true")
+              .enableHiveSupport();
+    } else {
+      builder = builder
+              .config("spark.sql.catalogImplementation", "in-memory")
+              .config("spark.driver.maxResultSize", "2g");
+    }
+
+    session = builder.getOrCreate();
+
+    session.udf().register("split_ex", split_ex, DataTypes.StringType);
+    session.udf().register("regexp_extract_ex", regexp_extract_ex, DataTypes.StringType);
+    session.udf().register("count_pattern_ex", count_pattern_ex, DataTypes.IntegerType);
+    session.udf().register("array_to_json_ex", array_to_json_ex, DataTypes.StringType);
+    return session;
+  }
+
+  public static SparkSession getSession() {
+    if (session == null)
+      throw new IllegalStateException("Session not created yet. Please call createSession() first");
 
     return session;
   }

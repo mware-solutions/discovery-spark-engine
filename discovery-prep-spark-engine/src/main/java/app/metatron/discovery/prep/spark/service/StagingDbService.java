@@ -56,6 +56,8 @@ public class StagingDbService {
     String dbName = (String) datasetInfo.get("dbName");
     String tblName = (String) datasetInfo.get("tblName");
 
+    SparkUtil.createSession(datasetInfo);
+
     return SparkUtil.selectTableAll(dbName, tblName, limitRows);
   }
 }

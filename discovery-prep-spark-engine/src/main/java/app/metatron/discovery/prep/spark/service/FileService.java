@@ -32,6 +32,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.spark.sql.DataFrameReader;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SparkSession;
 import org.apache.spark.sql.types.DataTypes;
 import org.apache.spark.sql.types.StructField;
 import org.apache.spark.sql.types.StructType;
@@ -80,8 +81,8 @@ public class FileService {
         }
         break;
 
-      case "alluxio":
       case "hdfs":
+      case "s3a":
         Configuration conf = new Configuration();
         conf.addResource(new Path(System.getenv("HADOOP_CONF_DIR") + "/core-site.xml"));
 
@@ -105,6 +106,8 @@ public class FileService {
     String storedUri = (String) datasetInfo.get("storedUri");
     String extensionType = FilenameUtils.getExtension(storedUri);
     Integer columnCount = (Integer) datasetInfo.get("manualColumnCount");
+
+    SparkUtil.createSession(datasetInfo);
 
     // If not .json, treat as a CSV.
     switch (extensionType.toUpperCase()) {

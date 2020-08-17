@@ -75,7 +75,7 @@ public class CsvUtil {
     }
 
     switch (uri.getScheme()) {
-      case "alluxio":
+      case "s3a":
       case "hdfs":
         if (conf == null) {
           LOGGER.error("getPrinter(): Required property missing: check polaris.dataprep.hadoopConfDir: strUri={}",
