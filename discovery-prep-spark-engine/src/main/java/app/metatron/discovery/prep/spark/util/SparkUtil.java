@@ -18,6 +18,7 @@ import app.metatron.discovery.prep.spark.udf.ArrayToJsonEx;
 import app.metatron.discovery.prep.spark.udf.CountPatternEx;
 import app.metatron.discovery.prep.spark.udf.RegexpExtractEx;
 import app.metatron.discovery.prep.spark.udf.SplitEx;
+import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
 import org.apache.spark.sql.Dataset;
@@ -48,8 +49,16 @@ public class SparkUtil {
     LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
 
     SparkConf conf = new SparkConf();
-    conf.set("spark.executor.memory", "1g");
-    conf.set("spark.driver.memory", "1g");
+    conf.set("spark.executor.memory", "4g");
+    conf.set("spark.driver.memory", "4g");
+
+    Object driverHost = datasetInfo.get("spark.driverHost");
+    LOGGER.info("Using driver host: " + driverHost);
+    if (driverHost != null && !StringUtils.isEmpty(driverHost.toString())) {
+      conf.set("spark.driver.port", "42399");
+      conf.set("spark.driver.host", driverHost.toString());
+      conf.set("spark.driver.bindAddress", "0.0.0.0");
+    }
 
     String storedUri = (String) datasetInfo.get("storedUri");
     if (storedUri.startsWith("s3a://")) {
