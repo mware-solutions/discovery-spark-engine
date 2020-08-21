@@ -49,8 +49,8 @@ public class SparkUtil {
     LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
 
     SparkConf conf = new SparkConf();
-    conf.set("spark.executor.memory", "4g");
-    conf.set("spark.driver.memory", "4g");
+    conf.set("spark.executor.memory", System.getenv("SPARK_EXECUTOR_MEMORY"));
+    conf.set("spark.driver.memory", System.getenv("SPARK_DRIVER_MEMORY"));
 
     Object driverHost = datasetInfo.get("spark.driverHost");
     LOGGER.info("Using driver host: " + driverHost);
