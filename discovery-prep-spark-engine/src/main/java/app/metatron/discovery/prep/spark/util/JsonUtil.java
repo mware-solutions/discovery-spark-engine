@@ -157,6 +157,7 @@ public class JsonUtil {
 
     switch (uri.getScheme()) {
       case "hdfs":
+      case "s3a":
         if (conf == null) {
           LOGGER.error(
                   "writeJson(): Required property missing: check polaris.dataprep.hadoopConfDir: strUri={}",

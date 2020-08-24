@@ -14,28 +14,22 @@
 
 package app.metatron.discovery.prep.spark.util;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.FileOutputStream;
+import org.apache.hadoop.conf.Configuration;
+import org.apache.hadoop.fs.FileSystem;
+import org.apache.hadoop.fs.FileUtil;
+import org.apache.hadoop.fs.Path;
+import org.apache.spark.sql.Dataset;
+import org.apache.spark.sql.Row;
+import org.apache.spark.sql.SaveMode;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.UnsupportedEncodingException;
-import java.io.Writer;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Iterator;
-import org.apache.commons.csv.CSVFormat;
-import org.apache.commons.csv.CSVPrinter;
-import org.apache.commons.csv.QuoteMode;
-import org.apache.hadoop.conf.Configuration;
-import org.apache.hadoop.fs.FSDataOutputStream;
-import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.Path;
-import org.apache.spark.sql.Dataset;
-import org.apache.spark.sql.Row;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CsvUtil {
 
@@ -55,124 +49,20 @@ public class CsvUtil {
     return writer;
   }
 
-  /**
-   * @param strUri URI as String (to be java.net.URI)
-   * @param conf Hadoop configuration which is mandatory when the url's protocol is hdfs
-   *
-   * header will be false for table-type snapshots.
-   */
-  public static CSVPrinter getPrinter(String strUri, Configuration conf) throws IOException, URISyntaxException {
-    Writer writer;
-    URI uri;
-
-    LOGGER.debug("getPrinter(): strUri={} conf={}", strUri, conf);
-
-    try {
-      uri = new URI(strUri);
-    } catch (URISyntaxException e) {
-      LOGGER.error("getPrinter(): URISyntaxException: strUri={}", strUri);
-      throw e;
-    }
-
-    switch (uri.getScheme()) {
-      case "s3a":
-      case "hdfs":
-        if (conf == null) {
-          LOGGER.error("getPrinter(): Required property missing: check polaris.dataprep.hadoopConfDir: strUri={}",
-                  strUri);
-          throw new IOException("getPrinter(): Required property missing: check polaris.dataprep.hadoopConfDir");
-        }
-        Path path = new Path(uri);
-
-        FileSystem hdfsFs;
-
-        try {
-          hdfsFs = FileSystem.get(conf);
-        } catch (IOException e) {
-          LOGGER.error("getPrinter(): Cannot get file system: check polaris.dataprep.hadoopConfDir: strUri={}", strUri);
-          throw e;
-        }
-
-        FSDataOutputStream hos;
-        try {
-          hos = hdfsFs.create(path);
-        } catch (IOException e) {
-          LOGGER.error("getPrinter(): Cannot create a file: polaris.dataprep.hadoopConfDir: strUri={}", strUri);
-          throw e;
-        }
-
-        writer = getWriter(hos);
-        break;
-
-      case "file":
-        File file = new File(uri);
-        File dirParent = file.getParentFile();
-        assert dirParent != null : uri;
-
-        if (!dirParent.exists()) {
-          if (!dirParent.mkdirs()) {
-            String errmsg = "getPrinter(): Cannot create a directory: " + strUri;
-            LOGGER.error(errmsg);
-            throw new IOException(errmsg);
-          }
-        }
-
-        FileOutputStream fos;
-        try {
-          fos = new FileOutputStream(file);
-        } catch (FileNotFoundException e) {
-          LOGGER.error("getPrinter(): FileNotFoundException: Check the permission of snapshot directory: strUri={}",
-                  strUri);
-          throw e;
-        }
-
-        writer = getWriter(fos);
-        break;
-
-      default:
-        String errmsg = "getPrinter(): Unsupported URI scheme: " + strUri;
-        LOGGER.error(errmsg);
-        throw new IOException(errmsg);
-    }
-
-    CSVPrinter printer;
-    try {
-      printer = new CSVPrinter(writer, CSVFormat.RFC4180.withQuoteMode(QuoteMode.MINIMAL));
-    } catch (IOException e) {
-      LOGGER.error("getPrinter(): Failed to get CSV printer: strUri={}", strUri);
-      throw e;
-    }
-
-    return printer;
-  }
-
   public static long writeCsv(Dataset<Row> df, String strUri, Configuration conf, int limitRows)
           throws IOException, URISyntaxException {
-    CSVPrinter printer = getPrinter(strUri, conf);
-    long totalLines = 0L;
+    df.write().format("csv")
+            .mode(SaveMode.Overwrite)
+            .option("header", true)
+            .save(strUri);
 
-    String[] colNames = df.columns();
+    FileSystem fs = FileSystem.get(new URI(strUri), conf);
 
-    // Column names
-    for (String colName : colNames) {
-      printer.print(colName);
-    }
-    printer.println();
+    String dstUri = strUri + "_snapshot";
+    FileUtil.copyMerge(fs, new Path(strUri), fs, new Path(dstUri), true, conf, null);
+    fs.rename(new Path(dstUri), new Path(strUri));
 
-    // Column values
-    Iterator iter = df.toLocalIterator();
-    while (iter.hasNext()) {
-      Row row = (Row) iter.next();
-      for (int i = 0; i < row.size(); i++) {
-        printer.print(row.get(i));
-      }
-      printer.println();
-      if (++totalLines >= limitRows) {
-        break;
-      }
-    }
-
-    printer.close(true);
-    return totalLines;
+    long totalRows = df.count();
+    return totalRows;
   }
 }
