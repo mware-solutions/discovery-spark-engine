@@ -17,20 +17,19 @@ package app.metatron.discovery.prep.spark.util;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.hadoop.fs.FileStatus;
 import org.apache.hadoop.fs.FileSystem;
-import org.apache.hadoop.fs.FileUtil;
 import org.apache.hadoop.fs.Path;
-import org.apache.hadoop.io.IOUtils;
 import org.apache.spark.sql.Dataset;
 import org.apache.spark.sql.Row;
 import org.apache.spark.sql.SaveMode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.*;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.io.UnsupportedEncodingException;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.nio.charset.StandardCharsets;
-import java.util.Arrays;
 
 public class CsvUtil {
 
@@ -50,48 +49,26 @@ public class CsvUtil {
         return writer;
     }
 
-    public static long writeCsv(Dataset<Row> df, String strUri, Configuration conf, int limitRows)
-            throws IOException, URISyntaxException {
+    public static long writeCsv(Dataset<Row> df, String strUri, Configuration conf, int limitRows) throws IOException, URISyntaxException {
+        String sparkOutputDir = strUri+"_snapshot";
         df.coalesce(1)
+                .limit(limitRows)
                 .write()
                 .format("csv")
                 .mode(SaveMode.Overwrite)
                 .option("header", true)
-                .save(strUri+"_snapshot");
+                .save(sparkOutputDir);
 
-        FileSystem fs = FileSystem.get(new URI(strUri), conf);
-        copyMerge(fs, new Path(strUri+"_snapshot"), fs, new Path(strUri), true, conf, null);
+        Path sparkOutputPath = new Path(sparkOutputDir);
+        FileSystem fs = FileSystem.get(new URI(sparkOutputDir), conf);
+        FileStatus[] csvFiles = fs.listStatus(sparkOutputPath, path -> path.getName().endsWith(".csv"));
+        if (csvFiles.length > 0) {
+            fs.rename(csvFiles[0].getPath(), new Path(strUri));
+        }
+
+        fs.delete(sparkOutputPath, true);
 
         return df.count();
     }
 
-
-    public static boolean copyMerge(FileSystem srcFS, Path srcDir,
-                                    FileSystem dstFS, Path dstFile,
-                                    boolean deleteSource,
-                                    Configuration conf, String addString) throws IOException {
-        if (!srcFS.getFileStatus(srcDir).isDirectory())
-            return false;
-
-        try (OutputStream out = dstFS.create(dstFile)) {
-            FileStatus[] contents = srcFS.listStatus(srcDir);
-            Arrays.sort(contents);
-            for (FileStatus content : contents) {
-                if (content.isFile()) {
-                    try (InputStream in = srcFS.open(content.getPath())) {
-                        IOUtils.copyBytes(in, out, conf, false);
-                        if (addString != null)
-                            out.write(addString.getBytes(StandardCharsets.UTF_8));
-                    }
-                }
-            }
-        }
-
-
-        if (deleteSource) {
-            return srcFS.delete(srcDir, true);
-        } else {
-            return true;
-        }
-    }
 }
