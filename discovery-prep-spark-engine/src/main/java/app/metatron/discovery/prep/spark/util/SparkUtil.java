@@ -49,6 +49,7 @@ public class SparkUtil {
     LOGGER.info("spark.sql.legacy.allowCreatingManagedTableUsingNonemptyLocation={}", "true");
 
     SparkConf conf = new SparkConf();
+    conf.set("spark.ui.reverseProxy", "true");
     conf.set("spark.executor.memory", System.getenv("SPARK_EXECUTOR_MEMORY"));
     conf.set("spark.driver.memory", System.getenv("SPARK_DRIVER_MEMORY"));
 
