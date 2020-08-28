@@ -68,8 +68,16 @@ public class SparkUtil {
       conf.set("spark.hadoop.fs.s3a.secret.key", (String) datasetInfo.get("fs.s3a.secret.key"));
       conf.set("spark.hadoop.fs.s3a.fast.upload", "true");
       conf.set("spark.hadoop.fs.s3a.path.style.access", "true");
-      conf.set("spark.hadoop.fs.s3a.path.style.access", "true");
       conf.set("spark.hadoop.fs.s3a.impl", "org.apache.hadoop.fs.s3a.S3AFileSystem");
+      conf.set("spark.hadoop.fs.s3a.connection.establish.timeout", "10000");
+      conf.set("spark.hadoop.fs.s3a.connection.maximum", "1000");
+      conf.set("spark.hadoop.fs.s3a.block.size", "128M");
+      conf.set("spark.hadoop.fs.s3a.fast.upload.buffer", "bytebuffer");
+      conf.set("spark.hadoop.fs.s3a.socket.send.buffer", "16384");
+      conf.set("spark.hadoop.fs.s3a.socket.recv.buffer", "16384");
+      conf.set("spark.hadoop.fs.s3a.readahead.range", "128K");
+      conf.set("spark.hadoop.fs.s3a.threads.max", "100");
+      conf.set("spark.hadoop.fs.s3a.max.total.tasks", "20");
     }
 
     Builder builder = SparkSession.builder()
