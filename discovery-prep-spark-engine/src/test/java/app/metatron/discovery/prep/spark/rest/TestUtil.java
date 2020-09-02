@@ -42,7 +42,7 @@ import org.apache.spark.sql.Row;
 
 public class TestUtil {
 
-  public static String BASE_URL = "http://localhost:5300";
+  public static String BASE_URL = "http://localhost:8080";
 
   public static String getResourcePath(String relPath, boolean fromHdfs) {
     if (fromHdfs) {

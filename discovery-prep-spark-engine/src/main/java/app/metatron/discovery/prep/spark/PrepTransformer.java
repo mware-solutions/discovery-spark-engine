@@ -49,17 +49,19 @@ public class PrepTransformer {
 
   private static Logger LOGGER = LoggerFactory.getLogger(PrepTransformer.class);
 
-  SparkSession session;
   RuleVisitorParser parser;
 
   public PrepTransformer() {
-    session = SparkUtil.getSession();
     parser = new RuleVisitorParser();
   }
 
   public PrepTransformer(String sparkAppName, String sparkMaster, String hiveMetastoreUris, String sparkSqlWarehouseDir,
           String sparkDriverMaxResultSize) {
-    session = SparkUtil.getSession(sparkAppName, sparkMaster, hiveMetastoreUris, sparkSqlWarehouseDir, sparkDriverMaxResultSize);
+    SparkUtil.setAppName(sparkAppName);
+    SparkUtil.setMasterUri(sparkMaster);
+    SparkUtil.setMetastoreUris(hiveMetastoreUris);
+    SparkUtil.setWarehouseDir(sparkSqlWarehouseDir);
+    SparkUtil.setSparkDriverMaxResultSize(sparkDriverMaxResultSize);
     parser = new RuleVisitorParser();
   }
 

@@ -14,10 +14,7 @@
 
 package app.metatron.discovery.prep.spark.util;
 
-import app.metatron.discovery.prep.spark.udf.ArrayToJsonEx;
-import app.metatron.discovery.prep.spark.udf.CountPatternEx;
-import app.metatron.discovery.prep.spark.udf.RegexpExtractEx;
-import app.metatron.discovery.prep.spark.udf.SplitEx;
+import app.metatron.discovery.prep.spark.udf.*;
 import org.apache.commons.lang3.StringUtils;
 import org.apache.spark.SparkConf;
 import org.apache.spark.sql.AnalysisException;
@@ -41,6 +38,7 @@ public class SparkUtil {
   private static String masterUri;
   private static String metastoreUris;
   private static String warehouseDir;
+  private static String sparkDriverMaxResultSize;
 
   public static SparkSession createSession(Map<String, Object> datasetInfo) {
     LOGGER.info("creating session:");
@@ -85,7 +83,8 @@ public class SparkUtil {
             .appName(appName)
             .master(masterUri);
 
-    if (metastoreUris != null && warehouseDir != null && warehouseDir.startsWith("hdfs")) {
+    boolean useHive = metastoreUris != null && warehouseDir != null;
+    if (useHive) {
       builder = builder
               .config("hive.metastore.uris", metastoreUris)
               .config("spark.sql.warehouse.dir", warehouseDir)
@@ -97,12 +96,20 @@ public class SparkUtil {
               .config("spark.driver.maxResultSize", "2g");
     }
 
+    builder = builder.config("spark.driver.maxResultSize", sparkDriverMaxResultSize);
+
     session = builder.getOrCreate();
 
     session.udf().register("split_ex", split_ex, DataTypes.StringType);
     session.udf().register("regexp_extract_ex", regexp_extract_ex, DataTypes.StringType);
     session.udf().register("count_pattern_ex", count_pattern_ex, DataTypes.IntegerType);
     session.udf().register("array_to_json_ex", array_to_json_ex, DataTypes.StringType);
+    session.udf().register("isnull", is_null_ex, DataTypes.BooleanType);
+    session.udf().register("ismismatched", is_mismatched_ex, DataTypes.BooleanType);
+    session.udf().register("from_array_ex", from_array_ex, DataTypes.StringType);
+    session.udf().register("from_map_ex", from_map_ex, DataTypes.StringType);
+    session.udf().register("to_array_type_ex", to_array_type_ex, DataTypes.createArrayType(DataTypes.StringType));
+
     return session;
   }
 
@@ -117,6 +124,11 @@ public class SparkUtil {
   private static RegexpExtractEx regexp_extract_ex = new RegexpExtractEx();
   private static CountPatternEx count_pattern_ex = new CountPatternEx();
   private static ArrayToJsonEx array_to_json_ex = new ArrayToJsonEx();
+  private static IsNullEx is_null_ex = new IsNullEx();
+  private static IsMismatchedEx is_mismatched_ex = new IsMismatchedEx();
+  private static FromMapEx from_map_ex = new FromMapEx();
+  private static FromArrayEx from_array_ex = new FromArrayEx();
+  private static ToArrayTypeEx to_array_type_ex = new ToArrayTypeEx();
 
   public static void stopSession() {
     if (session != null) {
@@ -171,5 +183,9 @@ public class SparkUtil {
 
   public static String getWarehouseDir() {
     return warehouseDir;
+  }
+
+  public static void setSparkDriverMaxResultSize(String sparkDriverMaxResultSize) {
+    SparkUtil.sparkDriverMaxResultSize = sparkDriverMaxResultSize;
   }
 }
