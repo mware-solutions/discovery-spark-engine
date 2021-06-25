@@ -60,7 +60,7 @@ public class SparkUtil {
     }
 
     String storedUri = (String) datasetInfo.get("storedUri");
-    if (storedUri.startsWith("s3a://")) {
+    if (storedUri != null && storedUri.startsWith("s3a://")) {
       conf.set("spark.hadoop.fs.s3a.endpoint", (String) datasetInfo.get("fs.s3a.endpoint"));
       conf.set("spark.hadoop.fs.s3a.access.key", (String) datasetInfo.get("fs.s3a.access.key"));
       conf.set("spark.hadoop.fs.s3a.secret.key", (String) datasetInfo.get("fs.s3a.secret.key"));

@@ -37,25 +37,6 @@ public class DatabaseService {
     limitRows = (Integer) prepPropertiesInfo.get(ETL_SPARK_LIMIT_ROWS);
   }
 
-  public long createSnapshot(Dataset<Row> df, Map<String, Object> snapshotInfo) throws URISyntaxException, IOException {
-    LOGGER.info("DatabaseService.createSnapshot(): started");
-
-    // NOTE:
-    // Currently, Metatron Discovery doesn't support DB snapshots.
-    // This function is only for tests for a while.
-    String connectUri = (String) snapshotInfo.get("connectUri");
-    String username = (String) snapshotInfo.get("username");
-    String password = (String) snapshotInfo.get("password");
-    String dbName = (String) snapshotInfo.get("dbName");
-    String tblName = (String) snapshotInfo.get("tblName");
-
-    SparkUtil.createTable(df, dbName, tblName, limitRows);
-    long totalLines = df.count();
-
-    LOGGER.info("DatabaseService.createSnapshot() finished: totalLines={}", totalLines);
-    return totalLines;
-  }
-
   public Dataset<Row> createStage0(Map<String, Object> datasetInfo) throws IOException, URISyntaxException {
     String connectUri = (String) datasetInfo.get("connectUri");
     String username = (String) datasetInfo.get("username");
@@ -67,12 +48,16 @@ public class DatabaseService {
 
     SparkUtil.createSession(datasetInfo);
 
-    return SparkUtil.getSession().read()
-            .format("jdbc")
-            .option("url", connectUri)
-            .option("user", username)
-            .option("password", password)
-            .option("dbtable", dbtable)
-            .load();
+    if ("HIVE".equals(datasetInfo.get("implementor"))) {
+      return SparkUtil.getSession().sql(sourceQuery);
+    } else {
+      return SparkUtil.getSession().read()
+              .format("jdbc")
+              .option("url", connectUri)
+              .option("user", username)
+              .option("password", password)
+              .option("dbtable", dbtable)
+              .load();
+    }
   }
 }

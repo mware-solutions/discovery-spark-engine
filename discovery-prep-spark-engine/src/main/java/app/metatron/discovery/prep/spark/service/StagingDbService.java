@@ -14,8 +14,6 @@
 
 package app.metatron.discovery.prep.spark.service;
 
-import static app.metatron.discovery.prep.spark.service.PropertyConstant.ETL_SPARK_LIMIT_ROWS;
-
 import app.metatron.discovery.prep.spark.util.SparkUtil;
 import java.io.IOException;
 import java.net.URISyntaxException;
